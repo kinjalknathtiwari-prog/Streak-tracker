@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Field Log — Streak Tracker</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#12151b">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&display=swap');
+
+  :root{
+    --ink:        #12151b;
+    --ink-soft:   #1c212b;
+    --paper:      #f2efe6;
+    --paper-dim:  #cfc9b8;
+    --stamp:      #b23a2f;
+    --stamp-soft: rgba(178,58,47,0.16);
+    --gold:       #c9a04a;
+    --line:       #3a4150;
+    --ok:         #6f8f6a;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    background: var(--ink);
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(201,160,74,0.07), transparent 40%),
+      radial-gradient(circle at 90% 90%, rgba(178,58,47,0.06), transparent 45%);
+    color: var(--paper);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    padding: 22px 16px 60px;
+    display:flex; justify-content:center;
+  }
+
+  .app{ width:100%; max-width: 460px; }
+
+  /* ---------- Header ---------- */
+  header{ margin-bottom: 22px; }
+  .eyebrow{
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--gold); opacity: 0.85; margin-bottom: 6px;
+  }
+  h1{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 30px;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .sub{ font-size: 12.5px; color: var(--paper-dim); }
+
+  /* ---------- Streak hero ---------- */
+  .hero{
+    display:flex; align-items:flex-end; gap: 18px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 20px 18px;
+    margin: 20px 0 18px;
+    background: linear-gradient(180deg, var(--ink-soft), var(--ink));
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(255,255,255,0.02) 28px);
+    pointer-events:none;
+  }
+  .hero-count{
+    font-family:'Fraunces', serif; font-weight:600;
+    font-size: 64px; line-height: 0.9; color: var(--paper);
+  }
+  .hero-count .unit{ font-family:'Space Mono',monospace; font-size:14px; font-weight:700; color: var(--gold); letter-spacing:0.08em; margin-left:6px;}
+  .hero-label{ font-size: 11px; letter-spacing:0.14em; text-transform:uppercase; color: var(--paper-dim); margin-bottom: 6px;}
+  .hero-stats{ margin-left:auto; text-align:right; display:flex; flex-direction:column; gap:10px;}
+  .stat-mini b{ display:block; font-family:'Fraunces',serif; font-size:20px; font-weight:600;}
+  .stat-mini span{ font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--paper-dim);}
+
+  /* pulse line = last 14 days */
+  .pulse{ display:flex; gap:4px; margin-top:16px; }
+  .pulse i{
+    flex:1; height:6px; border-radius:2px; background: var(--line); display:block;
+  }
+  .pulse i.hit{ background: var(--stamp); }
+
+  /* ---------- Today action ---------- */
+  .today-card{
+    border: 1px dashed var(--gold);
+    border-radius: 4px;
+    padding: 16px 18px;
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 22px;
+    background: rgba(201,160,74,0.05);
+  }
+  .today-card .txt div:first-child{ font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold); margin-bottom:3px;}
+  .today-card .txt div:last-child{ font-family:'Fraunces',serif; font-size:17px; }
+  .mark-btn{
+    font-family:'Space Mono',monospace; font-weight:700; font-size:12px; letter-spacing:0.06em;
+    padding: 12px 18px; border-radius:3px; border:1px solid var(--gold);
+    background: var(--gold); color: var(--ink); cursor:pointer;
+    text-transform:uppercase; transition: transform .12s ease, opacity .12s ease;
+  }
+  .mark-btn:active{ transform: scale(0.96); }
+  .mark-btn.done{
+    background:transparent; color:var(--ok); border-color:var(--ok);
+  }
+
+  /* ---------- Calendar ---------- */
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .cal-head h2{ font-family:'Fraunces',serif; font-weight:600; font-size:18px; margin:0;}
+  .cal-nav{ display:flex; gap:6px; }
+  .cal-nav button{
+    width:30px; height:30px; border-radius:3px; border:1px solid var(--line);
+    background:transparent; color:var(--paper); font-size:14px; cursor:pointer;
+  }
+  .cal-nav button:hover{ border-color: var(--gold); }
+
+  .weekdays{ display:grid; grid-template-columns: repeat(7,1fr); gap:6px; margin-bottom:6px;}
+  .weekdays span{ font-size:9.5px; text-align:center; color:var(--paper-dim); letter-spacing:0.06em;}
+
+  .days{ display:grid; grid-template-columns: repeat(7,1fr); gap:6px; }
+  .day{
+    aspect-ratio: 1; border-radius:3px; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12.5px; color: var(--paper-dim); cursor:pointer;
+    position:relative; background: var(--ink-soft);
+    transition: transform .1s ease;
+  }
+  .day.empty{ visibility:hidden; cursor:default; }
+  .day.future{ opacity:0.35; cursor:not-allowed; }
+  .day.today{ border-color: var(--gold); color:var(--paper); font-weight:700;}
+  .day.hit{
+    background: var(--stamp-soft); border-color: var(--stamp); color: var(--paper);
+  }
+  .day.hit::after{
+    content:"✕"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color: var(--stamp); font-size:16px; font-weight:700; transform: rotate(-8deg);
+  }
+  .day:active{ transform: scale(0.92); }
+
+  /* ---------- Footer note ---------- */
+  .note{ margin-top:26px; font-size:11px; color: var(--paper-dim); line-height:1.6; text-align:center;}
+  .note b{ color: var(--gold); }
+
+  ::selection{ background: var(--stamp-soft); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="eyebrow">Field Log</div>
+    <h1>Daily Streak</h1>
+    <div class="sub">Cross off today. Keep the chain unbroken.</div>
+  </header>
+
+  <div class="hero">
+    <div>
+      <div class="hero-label">Current streak</div>
+      <div class="hero-count" id="currentStreak">0<span class="unit">days</span></div>
+      <div class="pulse" id="pulse"></div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-mini"><b id="bestStreak">0</b><span>Best</span></div>
+      <div class="stat-mini"><b id="totalDays">0</b><span>Total</span></div>
+    </div>
+  </div>
+
+  <div class="today-card">
+    <div class="txt">
+      <div id="todayDate">—</div>
+      <div id="todayStatus">Not marked yet</div>
+    </div>
+    <button class="mark-btn" id="markTodayBtn">Mark</button>
+  </div>
+
+  <div class="cal-head">
+    <h2 id="monthLabel">—</h2>
+    <div class="cal-nav">
+      <button id="prevMonth">‹</button>
+      <button id="nextMonth">›</button>
+    </div>
+  </div>
+  <div class="weekdays">
+    <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+  </div>
+  <div class="days" id="daysGrid"></div>
+
+  <div class="note">Tap any past or present date to cross it in or out.<br>Data is saved on this device — <b>only you</b> can see it.</div>
+
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'streak:marked-dates';
+  let marked = new Set();      // 'YYYY-MM-DD'
+  let viewYear, viewMonth;     // calendar being displayed
+  let loaded = false;
+
+  const pad = n => String(n).padStart(2,'0');
+  const keyOf = (y,m,d) => `${y}-${pad(m+1)}-${pad(d)}`;
+  const todayObj = new Date();
+  const todayKey = keyOf(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+
+  viewYear = todayObj.getFullYear();
+  viewMonth = todayObj.getMonth();
+
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  async function load(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      if(res && res.value){
+        const arr = JSON.parse(res.value);
+        marked = new Set(arr);
+      }
+    }catch(e){
+      marked = new Set();
+    }
+    loaded = true;
+    render();
+  }
+
+  async function save(){
+    try{
+      await window.storage.set(STORAGE_KEY, JSON.stringify([...marked]), false);
+    }catch(e){
+      console.error('save failed', e);
+    }
+  }
+
+  function toggle(key){
+    const d = new Date(key + 'T00:00:00');
+    const t = new Date(todayKey + 'T00:00:00');
+    if(d > t) return; // no marking the future
+    if(marked.has(key)) marked.delete(key);
+    else marked.add(key);
+    save();
+    render();
+  }
+
+  function computeStreaks(){
+    // current streak: walk back from today (or yesterday if today not yet marked)
+    let current = 0;
+    let cursor = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+    // if today isn't marked, start counting from yesterday so an unmarked "today" doesn't zero out a live streak
+    if(!marked.has(todayKey)){
+      cursor.setDate(cursor.getDate()-1);
+    }
+    while(true){
+      const k = keyOf(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
+      if(marked.has(k)){
+        current++;
+        cursor.setDate(cursor.getDate()-1);
+      } else break;
+    }
+
+    // best streak: scan all marked dates sorted
+    const dates = [...marked].sort();
+    let best = 0, run = 0, prev = null;
+    for(const k of dates){
+      const d = new Date(k+'T00:00:00');
+      if(prev){
+        const diff = Math.round((d - prev)/86400000);
+        if(diff === 1) run++;
+        else run = 1;
+      } else run = 1;
+      best = Math.max(best, run);
+      prev = d;
+    }
+
+    return { current, best, total: marked.size };
+  }
+
+  function renderPulse(){
+    const el = document.getElementById('pulse');
+    el.innerHTML = '';
+    for(let i=13;i>=0;i--){
+      const d = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate()-i);
+      const k = keyOf(d.getFullYear(), d.getMonth(), d.getDate());
+      const bar = document.createElement('i');
+      if(marked.has(k)) bar.classList.add('hit');
+      el.appendChild(bar);
+    }
+  }
+
+  function render(){
+    if(!loaded) return;
+
+    const { current, best, total } = computeStreaks();
+    document.getElementById('currentStreak').innerHTML = current + '<span class="unit">days</span>';
+    document.getElementById('bestStreak').textContent = best;
+    document.getElementById('totalDays').textContent = total;
+    renderPulse();
+
+    // today card
+    const opts = { weekday:'long', month:'long', day:'numeric' };
+    document.getElementById('todayDate').textContent = todayObj.toLocaleDateString('en-US', opts);
+    const btn = document.getElementById('markTodayBtn');
+    const status = document.getElementById('todayStatus');
+    if(marked.has(todayKey)){
+      status.textContent = 'Crossed off ✕';
+      btn.textContent = 'Unmark';
+      btn.classList.add('done');
+    } else {
+      status.textContent = 'Not marked yet';
+      btn.textContent = 'Mark';
+      btn.classList.remove('done');
+    }
+
+    // calendar
+    document.getElementById('monthLabel').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
+    const grid = document.getElementById('daysGrid');
+    grid.innerHTML = '';
+    const firstDow = new Date(viewYear, viewMonth, 1).getDay();
+    const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+    const t = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+
+    for(let i=0;i<firstDow;i++){
+      const e = document.createElement('div');
+      e.className = 'day empty';
+      grid.appendChild(e);
+    }
+    for(let d=1; d<=daysInMonth; d++){
+      const cell = document.createElement('div');
+      const k = keyOf(viewYear, viewMonth, d);
+      const cellDate = new Date(viewYear, viewMonth, d);
+      cell.className = 'day';
+      cell.textContent = d;
+      if(cellDate > t) cell.classList.add('future');
+      if(k === todayKey) cell.classList.add('today');
+      if(marked.has(k)) cell.classList.add('hit');
+      cell.addEventListener('click', () => toggle(k));
+      grid.appendChild(cell);
+    }
+  }
+
+  document.getElementById('markTodayBtn').addEventListener('click', () => toggle(todayKey));
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    viewMonth--; if(viewMonth<0){viewMonth=11; viewYear--;}
+    render();
+  });
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    viewMonth++; if(viewMonth>11){viewMonth=0; viewYear++;}
+    render();
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
